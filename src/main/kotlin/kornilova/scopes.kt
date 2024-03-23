@@ -9,7 +9,7 @@ import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 private const val batchSize = 10
 
 sealed interface Scope<B : MyBatchInfo<TD_MemberProfile>> {
-    val initialBatchInfo: B
+    fun initialBatchInfo(skip: Int): B
 
     suspend fun getAllProfiles(
         client: SpaceClient,
@@ -19,7 +19,9 @@ sealed interface Scope<B : MyBatchInfo<TD_MemberProfile>> {
 }
 
 abstract class LocationScope(private val locationId: String) : Scope<StandardBatchInfo<TD_MemberProfile>> {
-    override val initialBatchInfo = StandardBatchInfo<TD_MemberProfile>(BatchInfo("0", batchSize), true)
+    override fun initialBatchInfo(skip: Int): StandardBatchInfo<TD_MemberProfile> {
+        return StandardBatchInfo(BatchInfo(skip.toString(), batchSize), true)
+    }
 
     override suspend fun getAllProfiles(
         client: SpaceClient,
@@ -39,7 +41,9 @@ object Berlin : LocationScope(berlinId)
 object Netherlands : LocationScope(netherlandsId)
 
 class EmailScope(private val email: String) : Scope<SimpleBatchInfo<TD_MemberProfile>> {
-    override val initialBatchInfo = SimpleBatchInfo<TD_MemberProfile>(true)
+    override fun initialBatchInfo(skip: Int): SimpleBatchInfo<TD_MemberProfile> {
+        return SimpleBatchInfo(true)
+    }
 
     override suspend fun getAllProfiles(
         client: SpaceClient,
@@ -52,8 +56,9 @@ class EmailScope(private val email: String) : Scope<SimpleBatchInfo<TD_MemberPro
 }
 
 class EmailsScope(private val emails: List<String>) : Scope<ListBatchInfo<TD_MemberProfile, String>> {
-    override val initialBatchInfo: ListBatchInfo<TD_MemberProfile, String>
-        get() = ListBatchInfo(emails)
+    override fun initialBatchInfo(skip: Int): ListBatchInfo<TD_MemberProfile, String> {
+        return ListBatchInfo(emails)
+    }
 
     override suspend fun getAllProfiles(
         client: SpaceClient,

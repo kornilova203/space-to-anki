@@ -33,8 +33,8 @@ fun main() {
         configureClient()
     }
     val users = runBlocking {
-        fetchUsers(scope, client)
-    }.drop(40).take(10)
+        fetchUsers(scope, client, skip = 50)
+    }.take(10)
         .map { user ->
             val picture = runBlocking {
                 loadPicture(token, httpClient, user.profilePictureId)
@@ -76,9 +76,10 @@ fun readAllTags(): Map<String, Set<String>> {
 
 private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
     scope: Scope<B>,
-    client: SpaceClient
+    client: SpaceClient,
+    skip: Int = 0
 ): Sequence<User> {
-    val profiles = fetchAll(scope.initialBatchInfo) { batchInfo ->
+    val profiles = fetchAll(scope.initialBatchInfo(skip)) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
             managers(this)
