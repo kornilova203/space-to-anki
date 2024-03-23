@@ -1,15 +1,14 @@
-package org.example.kornilova
+package kornilova
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kornilova.*
 import kotlinx.coroutines.runBlocking
-import space.jetbrains.api.runtime.BatchInfo
 import space.jetbrains.api.runtime.SpaceClient
 import space.jetbrains.api.runtime.ktorClientForSpace
+import space.jetbrains.api.runtime.types.TD_MemberProfile
 import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
 
@@ -30,14 +29,14 @@ fun main() {
     makeAnkiDeck(users.take(5).toList())
 }
 
-private suspend fun fetchUsers(
-    scope: Scope,
+private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
+    scope: Scope<B>,
     client: SpaceClient,
     token: String
 ): Sequence<User> {
     val httpClient = HttpClient()
 
-    val profiles = fetchAll { batchInfo ->
+    val profiles = fetchAll(scope.initialBatchInfo) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
             memberships {
@@ -87,22 +86,19 @@ fun makeAnkiDeck(users: List<User>) {
     csvWriter().writeAll(rows, resDir.resolve("result.csv"))
 }
 
-private const val batchSize = 10
-
-suspend fun <T> fetchAll(query: suspend (BatchInfo) -> MyBatch<T>): Sequence<T> {
-    val batchInfo = BatchInfo("0", batchSize)
-    val batch = query(batchInfo)
-
-    return generateSequence(Pair(batchInfo, batch)) { (batchInfo, batch) ->
-        if (batch.next == null) null
+suspend fun <T, B : MyBatchInfo<T>> fetchAll(initialBatchInfo: B, query: suspend (B) -> MyBatch<T, B>): Sequence<T> {
+    return generateSequence(query(initialBatchInfo)) { batch ->
+        if (!batch.batchInfo.hasNext) null
         else {
-            val nextBatchInfo = BatchInfo(batch.next, batchSize)
-            val nextBatch = runBlocking {
-                query(batchInfo)
+            runBlocking {
+                query(batch.batchInfo)
             }
-            Pair(nextBatchInfo, nextBatch)
         }
-    }.flatMap { (_, batch) -> batch.data }
+    }.flatMap { batch -> batch.data }
 }
 
-class MyBatch<T>(val data: List<T>, val next: String?)
+interface MyBatchInfo<T> {
+    val hasNext: Boolean
+}
+
+class MyBatch<T, B : MyBatchInfo<T>>(val batchInfo: B, val data: List<T>)
