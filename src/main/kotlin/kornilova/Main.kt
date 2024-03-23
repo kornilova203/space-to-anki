@@ -5,6 +5,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kornilova.User
+import kornilova.userAttributes
 import kotlinx.coroutines.runBlocking
 import space.jetbrains.api.runtime.Batch
 import space.jetbrains.api.runtime.BatchInfo
@@ -32,20 +33,32 @@ fun main() {
         }
         val users = profiles.map { profile ->
             val builder = HttpRequestBuilder()
-            builder.url(Url("https://jetbrains.team/d/${profile.profilePicture!!}"))
+            val profilePictureId = profile.profilePicture!!
+            builder.url(Url("https://jetbrains.team/d/${profilePictureId}"))
             builder.header("Authorization", "Bearer $token")
-            runBlocking {
+            val image = runBlocking {
                 val httpResponse = httpClient.get(builder)
-                File("${profile.name.firstName}.jpg").writeBytes(httpResponse.readBytes())
+                httpResponse.readBytes()
             }
-            User(profile.name.firstName, profile.name.lastName)
+            User(profile.name.firstName, profile.name.lastName, profilePictureId, image)
         }
         makeAnkiDeck(users.take(5).toList())
     }
 }
 
 fun makeAnkiDeck(users: List<User>) {
+    val resDir = File("result")
+    val imagesDir = resDir.resolve("images")
+    resDir.deleteRecursively()
+    imagesDir.mkdirs()
 
+    for (user in users) {
+        imagesDir.resolve("${user.profilePictureId}.jpg").writeBytes(user.image)
+    }
+    val csv = users.joinToString("\n") { user ->
+        userAttributes.joinToString(",") { attribute -> attribute.get(user) }
+    }
+    resDir.resolve("result.csv").writeText(csv)
 }
 
 private const val batchSize = 10
