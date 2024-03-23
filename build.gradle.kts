@@ -14,6 +14,7 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("org.jetbrains:space-sdk-jvm:159302-beta")
     implementation("io.ktor:ktor-client-cio-jvm:2.0.3")
+    implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.9.3")
 }
 
 tasks.test {

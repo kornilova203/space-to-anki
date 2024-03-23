@@ -5,5 +5,8 @@ class User(
     val firstName: String,
     val lastName: String,
     val profilePictureId: String,
-    val image: ByteArray
+    val image: ByteArray,
+    val memberships: List<Membership>
 )
+
+class Membership(val role: String, val team: String)

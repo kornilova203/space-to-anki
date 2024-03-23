@@ -1,7 +1,7 @@
 package kornilova
 
 // id has to be first because Anki uses first field as an id when re-importing notes with the update option turned on
-val userAttributes = listOf(UserId, FirstName, LastName, Picture)
+val userAttributes = listOf(UserId, FirstName, LastName, Picture, Memberships)
 
 sealed interface UserAttribute {
     fun get(user: User): String
@@ -23,5 +23,13 @@ data object LastName : UserAttribute {
 data object Picture : UserAttribute {
     override fun get(user: User): String {
         return "<img src='${user.profilePictureId}.jpg'>"
+    }
+}
+
+data object Memberships : UserAttribute {
+    override fun get(user: User): String {
+        return user.memberships.joinToString("\n") {
+            "${it.role} at ${it.team}"
+        }
     }
 }

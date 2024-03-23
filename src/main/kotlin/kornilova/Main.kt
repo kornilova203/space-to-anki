@@ -1,9 +1,11 @@
 package org.example.kornilova
 
+import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kornilova.Membership
 import kornilova.User
 import kornilova.userAttributes
 import kotlinx.coroutines.runBlocking
@@ -29,7 +31,17 @@ fun main() {
 
     runBlocking {
         val profiles = fetchAll { batchInfo ->
-            client.teamDirectory.profiles.getAllProfiles(locationId = berlin, batchInfo = batchInfo)
+            client.teamDirectory.profiles.getAllProfiles(locationId = berlin, batchInfo = batchInfo) {
+                defaultPartial()
+                memberships {
+                    role {
+                        name()
+                    }
+                    team {
+                        name()
+                    }
+                }
+            }
         }
         val users = profiles.map { profile ->
             val builder = HttpRequestBuilder()
@@ -40,7 +52,14 @@ fun main() {
                 val httpResponse = httpClient.get(builder)
                 httpResponse.readBytes()
             }
-            User(profile.id, profile.name.firstName, profile.name.lastName, profilePictureId, image)
+            User(
+                profile.id,
+                profile.name.firstName,
+                profile.name.lastName,
+                profilePictureId,
+                image,
+                profile.memberships.map { Membership(it.role.name, it.team.name) }
+            )
         }
         makeAnkiDeck(users.take(5).toList())
     }
@@ -55,10 +74,11 @@ fun makeAnkiDeck(users: List<User>) {
     for (user in users) {
         imagesDir.resolve("${user.profilePictureId}.jpg").writeBytes(user.image)
     }
-    val csv = users.joinToString("\n") { user ->
-        userAttributes.joinToString(",") { attribute -> attribute.get(user) }
+    val rows = users.map { user ->
+        userAttributes.map { attribute -> attribute.get(user) }
     }
-    resDir.resolve("result.csv").writeText(csv)
+
+    csvWriter().writeAll(rows, resDir.resolve("result.csv"))
 }
 
 private const val batchSize = 10
