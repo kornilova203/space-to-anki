@@ -8,6 +8,7 @@ import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
 import space.jetbrains.api.runtime.SpaceClient
 import space.jetbrains.api.runtime.ktorClientForSpace
+import space.jetbrains.api.runtime.types.FractionCFValue
 import space.jetbrains.api.runtime.types.TD_MemberProfile
 import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
@@ -40,12 +41,14 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
             memberships {
+                lead()
                 role {
                     name()
                 }
                 team {
                     name()
                 }
+                customFields()
             }
         }
         scope.getAllProfiles(client, batchInfo, buildPartial)
@@ -61,11 +64,10 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
         }
         User(
             profile.id,
-            profile.name.firstName,
-            profile.name.lastName,
-            profilePictureId,
-            image,
-            profile.memberships.map { Membership(it.role.name, it.team.name) }
+            profile.name.firstName, profile.name.lastName, profilePictureId, image, profile.memberships.map {
+                val ratio = (it.customFields["Ratio"] as? FractionCFValue)?.value
+                Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
+            }.sortedWith(compareBy<Membership> ({ it.lead }, { it.ratio }).reversed())
         )
     }
 }

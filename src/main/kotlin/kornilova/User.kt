@@ -9,4 +9,9 @@ class User(
     val memberships: List<Membership>
 )
 
-class Membership(val role: String, val team: String)
+class Membership(
+    val role: String,
+    val team: String,
+    val lead: Boolean,
+    val ratio: Float
+)
