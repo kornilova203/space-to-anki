@@ -28,7 +28,7 @@ data object Picture : UserAttribute {
 
 data object Memberships : UserAttribute {
     override fun get(user: User): String {
-        return user.memberships.joinToString("\n") {
+        return user.memberships.joinToString("<br/>") {
             "${it.role} at ${it.team}"
         }
     }
