@@ -3,6 +3,7 @@ package kornilova
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import io.ktor.client.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -15,10 +16,12 @@ import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
 
 fun main() {
-    val scope = EmailsScope(File("emails.txt").readLines())
+    val scope = Berlin
     val additionalTags = listOf<String>()
 
-    val spaceHttpClient = ktorClientForSpace()
+    val spaceHttpClient = ktorClientForSpace() {
+        configureClient()
+    }
     val token = File("src/main/resources/token.txt").readText()
     val client = SpaceClient(
         ktorClient = spaceHttpClient,
@@ -60,7 +63,9 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
     client: SpaceClient,
     token: String
 ): Sequence<User> {
-    val httpClient = HttpClient()
+    val httpClient = HttpClient {
+        configureClient()
+    }
 
     val profiles = fetchAll(scope.initialBatchInfo) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
@@ -115,6 +120,12 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
             }.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
             extractLocationTags(profile)
         )
+    }
+}
+
+fun HttpClientConfig<*>.configureClient() {
+    install(HttpTimeout) {
+        requestTimeoutMillis = 5000
     }
 }
 
