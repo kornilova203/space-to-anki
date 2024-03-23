@@ -19,7 +19,7 @@ fun main() {
     val scope = Berlin
     val additionalTags = listOf<String>()
 
-    val spaceHttpClient = ktorClientForSpace() {
+    val spaceHttpClient = ktorClientForSpace {
         configureClient()
     }
     val token = File("src/main/resources/token.txt").readText()
@@ -34,7 +34,7 @@ fun main() {
     }
     val users = runBlocking {
         fetchUsers(scope, client)
-    }.drop(30).take(10)
+    }.drop(40).take(10)
         .map { user ->
             val picture = runBlocking {
                 loadPicture(token, httpClient, user.profilePictureId)

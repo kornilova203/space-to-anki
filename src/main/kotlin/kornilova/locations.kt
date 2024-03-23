@@ -16,19 +16,15 @@ val locationTags = mapOf(
 )
 
 fun extractLocationTags(profile: TD_MemberProfile): Set<String> {
-    if (profile.locations.size > 1) {
-        throw IllegalStateException("Unexpected number of locations: ${profile.locations}")
-    }
-    if (profile.locations.isEmpty()) {
-        return emptySet()
-    }
-    var location: TD_Location? = profile.locations[0].location
-    while (location != null) {
-        val tag = locationTags[location.id]
-        if (tag != null) {
-            return setOf(tag)
+    for (location in profile.locations) {
+        var l: TD_Location? = location.location
+        while (l != null) {
+            val tag = locationTags[l.id]
+            if (tag != null) {
+                return setOf(tag)
+            }
+            l = l.parent
         }
-        location = location.parent
     }
     return emptySet()
 }
