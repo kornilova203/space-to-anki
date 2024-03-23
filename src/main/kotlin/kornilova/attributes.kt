@@ -1,9 +1,14 @@
 package kornilova
 
-val userAttributes = listOf(FirstName, LastName, Picture)
+// id has to be first because Anki uses first field as an id when re-importing notes with the update option turned on
+val userAttributes = listOf(UserId, FirstName, LastName, Picture)
 
 sealed interface UserAttribute {
     fun get(user: User): String
+}
+
+data object UserId : UserAttribute {
+    override fun get(user: User): String = user.id
 }
 
 data object FirstName : UserAttribute {

@@ -40,7 +40,7 @@ fun main() {
                 val httpResponse = httpClient.get(builder)
                 httpResponse.readBytes()
             }
-            User(profile.name.firstName, profile.name.lastName, profilePictureId, image)
+            User(profile.id, profile.name.firstName, profile.name.lastName, profilePictureId, image)
         }
         makeAnkiDeck(users.take(5).toList())
     }
