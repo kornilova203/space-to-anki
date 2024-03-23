@@ -14,7 +14,7 @@ import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
 
 fun main() {
-    val scope = Berlin
+    val scope = EmailsScope(File("emails.txt").readLines())
 
     val spaceHttpClient = ktorClientForSpace()
     val token = File("src/main/resources/token.txt").readText()
@@ -27,7 +27,7 @@ fun main() {
     val users = runBlocking {
         fetchUsers(scope, client, token)
     }
-    makeAnkiDeck(users.take(5).toList())
+    makeAnkiDeck(users.toList())
 }
 
 private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
@@ -40,6 +40,12 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
     val profiles = fetchAll(scope.initialBatchInfo) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
+            languages {
+                name()
+                language {
+                    name()
+                }
+            }
             memberships {
                 lead()
                 role {
@@ -62,9 +68,14 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
             val httpResponse = httpClient.get(builder)
             httpResponse.readBytes()
         }
+        val russianName = profile.languages.find { it.language.name == "Russian" }?.name
         User(
             profile.id,
-            profile.name.firstName, profile.name.lastName, profilePictureId, image, profile.memberships.map {
+            russianName?.firstName ?: profile.name.firstName,
+            russianName?.lastName ?: profile.name.lastName,
+            profilePictureId,
+            image,
+            profile.memberships.map {
                 val ratio = (it.customFields["Ratio"] as? FractionCFValue)?.value
                 Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
             }.sortedWith(compareBy<Membership> ({ it.lead }, { it.ratio }).reversed())
