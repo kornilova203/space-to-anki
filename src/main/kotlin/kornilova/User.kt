@@ -6,7 +6,8 @@ class User(
     val lastName: String,
     val profilePictureId: String,
     val image: ByteArray,
-    val memberships: List<Membership>
+    val memberships: List<Membership>,
+    val tags: Set<String>,
 )
 
 class Membership(
