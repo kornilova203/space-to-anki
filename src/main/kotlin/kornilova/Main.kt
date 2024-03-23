@@ -5,12 +5,8 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kornilova.Berlin
-import kornilova.Membership
-import kornilova.User
-import kornilova.userAttributes
+import kornilova.*
 import kotlinx.coroutines.runBlocking
-import space.jetbrains.api.runtime.Batch
 import space.jetbrains.api.runtime.BatchInfo
 import space.jetbrains.api.runtime.SpaceClient
 import space.jetbrains.api.runtime.ktorClientForSpace
@@ -35,7 +31,7 @@ fun main() {
 }
 
 private suspend fun fetchUsers(
-    scope: Berlin,
+    scope: Scope,
     client: SpaceClient,
     token: String
 ): Sequence<User> {
@@ -93,17 +89,20 @@ fun makeAnkiDeck(users: List<User>) {
 
 private const val batchSize = 10
 
-suspend fun <T> fetchAll(query: suspend (BatchInfo) -> Batch<T>): Sequence<T> {
+suspend fun <T> fetchAll(query: suspend (BatchInfo) -> MyBatch<T>): Sequence<T> {
     val batchInfo = BatchInfo("0", batchSize)
     val batch = query(batchInfo)
 
     return generateSequence(Pair(batchInfo, batch)) { (batchInfo, batch) ->
-        val nextBatchInfo = BatchInfo(batch.next, batchSize)
-        val nextBatch = runBlocking {
-            query(batchInfo)
+        if (batch.next == null) null
+        else {
+            val nextBatchInfo = BatchInfo(batch.next, batchSize)
+            val nextBatch = runBlocking {
+                query(batchInfo)
+            }
+            Pair(nextBatchInfo, nextBatch)
         }
-        Pair(nextBatchInfo, nextBatch)
     }.flatMap { (_, batch) -> batch.data }
 }
 
-fun Batch<*>.hasNext() = data.isNotEmpty()
+class MyBatch<T>(val data: List<T>, val next: String?)
