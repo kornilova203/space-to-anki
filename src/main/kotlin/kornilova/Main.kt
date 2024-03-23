@@ -29,8 +29,17 @@ fun main() {
         token = token
     )
 
+    val httpClient = HttpClient {
+        configureClient()
+    }
     val users = runBlocking {
-        fetchUsers(scope, client, token)
+        fetchUsers(scope, client)
+    }.drop(30).take(10)
+        .map { user ->
+            val picture = runBlocking {
+                loadPicture(token, httpClient, user.profilePictureId)
+            }
+            UserWithPicture(user, picture)
     }.toList()
     tagsDir.mkdirs()
     rememberTags(users, additionalTags)
@@ -38,12 +47,19 @@ fun main() {
     makeAnkiDeck(users.toList(), allTags)
 }
 
+suspend fun loadPicture(token: String, httpClient: HttpClient, profilePictureId: String): ByteArray {
+    val builder = HttpRequestBuilder()
+    builder.url(Url("https://jetbrains.team/d/${profilePictureId}"))
+    builder.header("Authorization", "Bearer $token")
+    return httpClient.get(builder).readBytes()
+}
+
 val tagsDir = File("tags")
 
-fun rememberTags(users: List<User>, tags: List<String>) {
+fun rememberTags(users: List<UserWithPicture>, tags: List<String>) {
     if (tags.isEmpty()) return
     val tagsFile = tagsDir.resolve("${System.currentTimeMillis()}.txt")
-    csvWriter().writeAll(users.map { listOf(it.id, tags.joinToString(" ")) }, tagsFile)
+    csvWriter().writeAll(users.map { listOf(it.user.id, tags.joinToString(" ")) }, tagsFile)
 }
 
 fun readAllTags(): Map<String, Set<String>> {
@@ -60,13 +76,8 @@ fun readAllTags(): Map<String, Set<String>> {
 
 private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
     scope: Scope<B>,
-    client: SpaceClient,
-    token: String
+    client: SpaceClient
 ): Sequence<User> {
-    val httpClient = HttpClient {
-        configureClient()
-    }
-
     val profiles = fetchAll(scope.initialBatchInfo) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
@@ -99,21 +110,13 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
         scope.getAllProfiles(client, batchInfo, buildPartial)
     }
     return profiles.mapNotNull { profile ->
-        val builder = HttpRequestBuilder()
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
-        builder.url(Url("https://jetbrains.team/d/${profilePictureId}"))
-        builder.header("Authorization", "Bearer $token")
-        val image = runBlocking {
-            val httpResponse = httpClient.get(builder)
-            httpResponse.readBytes()
-        }
         val russianName = profile.languages.find { it.language.name == "Russian" }?.name
         User(
             profile.id,
             russianName?.firstName ?: profile.name.firstName,
             russianName?.lastName ?: profile.name.lastName,
             profilePictureId,
-            image,
             profile.memberships.map {
                 val ratio = (it.customFields["Ratio"] as? FractionCFValue)?.value
                 Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
@@ -125,22 +128,24 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
 
 fun HttpClientConfig<*>.configureClient() {
     install(HttpTimeout) {
-        requestTimeoutMillis = 5000
+        requestTimeoutMillis = 10000
+        connectTimeoutMillis = 10000
+        socketTimeoutMillis = 10000
     }
 }
 
-fun makeAnkiDeck(users: List<User>, additionalTags: Map<String, Set<String>>) {
+fun makeAnkiDeck(users: List<UserWithPicture>, additionalTags: Map<String, Set<String>>) {
     val resDir = File("result")
     val imagesDir = resDir.resolve("images")
     resDir.deleteRecursively()
     imagesDir.mkdirs()
 
     for (user in users) {
-        imagesDir.resolve("${user.profilePictureId}.jpg").writeBytes(user.image)
+        imagesDir.resolve("${user.user.profilePictureId}.jpg").writeBytes(user.picture)
     }
     val rows = users.map { user ->
-        val allTags = user.tags + (additionalTags[user.id] ?: emptySet())
-        userAttributes.map { attribute -> attribute.get(user) }.plus(allTags.joinToString(" "))
+        val allTags = user.user.tags + (additionalTags[user.user.id] ?: emptySet())
+        userAttributes.map { attribute -> attribute.get(user.user) }.plus(allTags.joinToString(" "))
     }
 
     csvWriter().writeAll(rows, resDir.resolve("result.csv"))
