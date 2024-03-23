@@ -65,6 +65,15 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
     val profiles = fetchAll(scope.initialBatchInfo) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
+            managers(this)
+            locations {
+                location {
+                    id()
+                    name()
+                    type()
+                    parent(this)
+                }
+            }
             languages {
                 name()
                 language {
@@ -84,9 +93,9 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
         }
         scope.getAllProfiles(client, batchInfo, buildPartial)
     }
-    return profiles.map { profile ->
+    return profiles.mapNotNull { profile ->
         val builder = HttpRequestBuilder()
-        val profilePictureId = profile.profilePicture!!
+        val profilePictureId = profile.profilePicture ?: return@mapNotNull null
         builder.url(Url("https://jetbrains.team/d/${profilePictureId}"))
         builder.header("Authorization", "Bearer $token")
         val image = runBlocking {
@@ -104,7 +113,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
                 val ratio = (it.customFields["Ratio"] as? FractionCFValue)?.value
                 Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
             }.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
-            emptySet()
+            extractLocationTags(profile)
         )
     }
 }

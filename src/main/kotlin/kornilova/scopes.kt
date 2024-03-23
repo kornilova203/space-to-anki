@@ -35,7 +35,8 @@ abstract class LocationScope(private val locationId: String) : Scope<StandardBat
     }
 }
 
-object Berlin : LocationScope("1VSTug1k3zI8")
+object Berlin : LocationScope(berlinId)
+object Netherlands : LocationScope(netherlandsId)
 
 class EmailScope(private val email: String) : Scope<SimpleBatchInfo<TD_MemberProfile>> {
     override val initialBatchInfo = SimpleBatchInfo<TD_MemberProfile>(true)
