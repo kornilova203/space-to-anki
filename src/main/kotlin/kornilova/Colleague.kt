@@ -1,6 +1,6 @@
 package kornilova
 
-class User(
+class Colleague(
     val id: String,
     val firstName: String,
     val lastName: String,
@@ -9,7 +9,7 @@ class User(
     val tags: Set<String>,
 )
 
-class UserWithPicture(val user: User, val picture: ByteArray)
+class ColleagueWithPicture(val colleague: Colleague, val picture: ByteArray)
 
 class Membership(
     val role: String,

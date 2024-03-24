@@ -1,34 +1,34 @@
 package kornilova
 
 // id has to be first because Anki uses first field as an id when re-importing notes with the update option turned on
-val userAttributes = listOf(UserId, FirstName, LastName, Picture, Memberships)
+val colleagueAttributes = listOf(ColleagueId, FirstName, LastName, Picture, Memberships)
 
-sealed interface UserAttribute {
-    fun get(user: User): String
+sealed interface ColleagueAttribute {
+    fun get(colleague: Colleague): String
 }
 
-data object UserId : UserAttribute {
-    override fun get(user: User): String = user.id
+data object ColleagueId : ColleagueAttribute {
+    override fun get(colleague: Colleague): String = colleague.id
 }
 
-data object FirstName : UserAttribute {
-    override fun get(user: User): String = user.firstName
+data object FirstName : ColleagueAttribute {
+    override fun get(colleague: Colleague): String = colleague.firstName
 }
 
-data object LastName : UserAttribute {
-    override fun get(user: User): String = user.lastName
+data object LastName : ColleagueAttribute {
+    override fun get(colleague: Colleague): String = colleague.lastName
 }
 
 
-data object Picture : UserAttribute {
-    override fun get(user: User): String {
-        return "<img src='${user.profilePictureId}.jpg'>"
+data object Picture : ColleagueAttribute {
+    override fun get(colleague: Colleague): String {
+        return "<img src='${colleague.profilePictureId}.jpg'>"
     }
 }
 
-data object Memberships : UserAttribute {
-    override fun get(user: User): String {
-        return user.memberships.joinToString("<br/>") {
+data object Memberships : ColleagueAttribute {
+    override fun get(colleague: Colleague): String {
+        return colleague.memberships.joinToString("<br/>") {
             "${it.role} at ${it.team}"
         }
     }

@@ -16,7 +16,7 @@ import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
 
 fun main() {
-    val scope = Berlin
+    val scope = EmailsScope(File("emails.txt").readLines())
     val additionalTags = listOf<String>()
 
     val spaceHttpClient = ktorClientForSpace {
@@ -32,19 +32,19 @@ fun main() {
     val httpClient = HttpClient {
         configureClient()
     }
-    val users = runBlocking {
-        fetchUsers(scope, client, skip = 50)
+    val colleagues = runBlocking {
+        fetchColleagues(scope, client, skip = 60)
     }.take(10)
-        .map { user ->
+        .map { colleague ->
             val picture = runBlocking {
-                loadPicture(token, httpClient, user.profilePictureId)
+                loadPicture(token, httpClient, colleague.profilePictureId)
             }
-            UserWithPicture(user, picture)
+            ColleagueWithPicture(colleague, picture)
     }.toList()
     tagsDir.mkdirs()
-    rememberTags(users, additionalTags)
+    rememberTags(colleagues, additionalTags)
     val allTags = readAllTags()
-    makeAnkiDeck(users.toList(), allTags)
+    makeAnkiDeck(colleagues.toList(), allTags)
 }
 
 suspend fun loadPicture(token: String, httpClient: HttpClient, profilePictureId: String): ByteArray {
@@ -56,10 +56,10 @@ suspend fun loadPicture(token: String, httpClient: HttpClient, profilePictureId:
 
 val tagsDir = File("tags")
 
-fun rememberTags(users: List<UserWithPicture>, tags: List<String>) {
+fun rememberTags(colleagues: List<ColleagueWithPicture>, tags: List<String>) {
     if (tags.isEmpty()) return
     val tagsFile = tagsDir.resolve("${System.currentTimeMillis()}.txt")
-    csvWriter().writeAll(users.map { listOf(it.user.id, tags.joinToString(" ")) }, tagsFile)
+    csvWriter().writeAll(colleagues.map { listOf(it.colleague.id, tags.joinToString(" ")) }, tagsFile)
 }
 
 fun readAllTags(): Map<String, Set<String>> {
@@ -74,11 +74,11 @@ fun readAllTags(): Map<String, Set<String>> {
     return tags
 }
 
-private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
+private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
     scope: Scope<B>,
     client: SpaceClient,
     skip: Int = 0
-): Sequence<User> {
+): Sequence<Colleague> {
     val profiles = fetchAll(scope.initialBatchInfo(skip)) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
@@ -113,7 +113,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchUsers(
     return profiles.mapNotNull { profile ->
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
         val russianName = profile.languages.find { it.language.name == "Russian" }?.name
-        User(
+        Colleague(
             profile.id,
             russianName?.firstName ?: profile.name.firstName,
             russianName?.lastName ?: profile.name.lastName,
@@ -135,18 +135,18 @@ fun HttpClientConfig<*>.configureClient() {
     }
 }
 
-fun makeAnkiDeck(users: List<UserWithPicture>, additionalTags: Map<String, Set<String>>) {
+fun makeAnkiDeck(colleagues: List<ColleagueWithPicture>, additionalTags: Map<String, Set<String>>) {
     val resDir = File("result")
     val imagesDir = resDir.resolve("images")
     resDir.deleteRecursively()
     imagesDir.mkdirs()
 
-    for (user in users) {
-        imagesDir.resolve("${user.user.profilePictureId}.jpg").writeBytes(user.picture)
+    for (colleague in colleagues) {
+        imagesDir.resolve("${colleague.colleague.profilePictureId}.jpg").writeBytes(colleague.picture)
     }
-    val rows = users.map { user ->
-        val allTags = user.user.tags + (additionalTags[user.user.id] ?: emptySet())
-        userAttributes.map { attribute -> attribute.get(user.user) }.plus(allTags.joinToString(" "))
+    val rows = colleagues.map { colleague ->
+        val allTags = colleague.colleague.tags + (additionalTags[colleague.colleague.id] ?: emptySet())
+        colleagueAttributes.map { attribute -> attribute.get(colleague.colleague) }.plus(allTags.joinToString(" "))
     }
 
     csvWriter().writeAll(rows, resDir.resolve("result.csv"))
