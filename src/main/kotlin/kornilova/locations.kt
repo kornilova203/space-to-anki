@@ -1,30 +1,35 @@
 package kornilova
 
+import kornilova.SimpleLocation.entries
 import space.jetbrains.api.runtime.types.TD_Location
 import space.jetbrains.api.runtime.types.TD_MemberProfile
 
-val berlinId = "1VSTug1k3zI8"
-val netherlandsId = "3fkpd53c1Sls"
-val munichId = "1L51AV11kGh1"
-val pragueId = "3FYOKl3LmPsO"
+enum class SimpleLocation(val id: String, val presentableName: String) {
+    BERLIN("1VSTug1k3zI8", "Berlin"),
+    NETHERLANDS("3fkpd53c1Sls", "Netherlands"),
+    MUNICH("1L51AV11kGh1", "Munich"),
+    PRAGUE("3FYOKl3LmPsO", "Prague"),
+}
 
-val locationTags = mapOf(
-    berlinId to "Berlin",
-    netherlandsId to "Netherlands",
-    munichId to "Munich",
-    pragueId to "Prague",
-)
-
-fun extractLocationTags(profile: TD_MemberProfile): Set<String> {
+fun extractSimpleLocation(profile: TD_MemberProfile): SimpleLocation? {
     for (location in profile.locations) {
         var l: TD_Location? = location.location
         while (l != null) {
-            val tag = locationTags[l.id]
-            if (tag != null) {
-                return setOf(tag)
+            val simpleLocation = findById(l.id)
+            if (simpleLocation != null) {
+                return simpleLocation
             }
             l = l.parent
         }
     }
-    return emptySet()
+    return null
+}
+
+fun extractLocationTags(profile: TD_MemberProfile): Set<String> {
+    val simpleLocation = extractSimpleLocation(profile)
+    return if (simpleLocation != null) setOf(simpleLocation.presentableName) else emptySet()
+}
+
+fun findById(id: String): SimpleLocation? {
+    return entries.find { it.id == id }
 }

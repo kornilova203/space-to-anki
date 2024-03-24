@@ -1,5 +1,7 @@
 package kornilova
 
+import kornilova.SimpleLocation.BERLIN
+import kornilova.SimpleLocation.NETHERLANDS
 import space.jetbrains.api.runtime.BatchInfo
 import space.jetbrains.api.runtime.SpaceClient
 import space.jetbrains.api.runtime.resources.teamDirectory
@@ -18,7 +20,7 @@ sealed interface Scope<B : MyBatchInfo<TD_MemberProfile>> {
     ): MyBatch<TD_MemberProfile, B>
 }
 
-abstract class LocationScope(private val locationId: String) : Scope<StandardBatchInfo<TD_MemberProfile>> {
+abstract class LocationScope(private val location: SimpleLocation) : Scope<StandardBatchInfo<TD_MemberProfile>> {
     override fun initialBatchInfo(skip: Int): StandardBatchInfo<TD_MemberProfile> {
         return StandardBatchInfo(BatchInfo(skip.toString(), batchSize), true)
     }
@@ -29,7 +31,7 @@ abstract class LocationScope(private val locationId: String) : Scope<StandardBat
         buildPartial: TD_MemberProfilePartial.() -> Unit
     ): MyBatch<TD_MemberProfile, StandardBatchInfo<TD_MemberProfile>> {
         val batch = client.teamDirectory.profiles.getAllProfiles(
-            locationId = locationId,
+            locationId = location.id,
             batchInfo = batchInfo.batchInfo,
             buildPartial = buildPartial
         )
@@ -37,8 +39,8 @@ abstract class LocationScope(private val locationId: String) : Scope<StandardBat
     }
 }
 
-object Berlin : LocationScope(berlinId)
-object Netherlands : LocationScope(netherlandsId)
+object Berlin : LocationScope(BERLIN)
+object Netherlands : LocationScope(NETHERLANDS)
 
 class EmailScope(private val email: String) : Scope<SimpleBatchInfo<TD_MemberProfile>> {
     override fun initialBatchInfo(skip: Int): SimpleBatchInfo<TD_MemberProfile> {

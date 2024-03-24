@@ -6,6 +6,7 @@ class Colleague(
     val lastName: String,
     val profilePictureId: String,
     val memberships: List<Membership>,
+    val location: String?,
     val tags: Set<String>,
 )
 

@@ -113,6 +113,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
     return profiles.mapNotNull { profile ->
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
         val russianName = profile.languages.find { it.language.name == "Russian" }?.name
+        val location = extractSimpleLocation(profile)
         Colleague(
             profile.id,
             russianName?.firstName ?: profile.name.firstName,
@@ -122,6 +123,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
                 val ratio = (it.customFields["Ratio"] as? FractionCFValue)?.value
                 Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
             }.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
+            location?.presentableName,
             extractLocationTags(profile)
         )
     }

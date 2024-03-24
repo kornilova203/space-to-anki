@@ -1,7 +1,7 @@
 package kornilova
 
 // id has to be first because Anki uses first field as an id when re-importing notes with the update option turned on
-val colleagueAttributes = listOf(ColleagueId, FirstName, LastName, Picture, Memberships)
+val colleagueAttributes = listOf(ColleagueId, FirstName, LastName, Picture, Memberships, Location)
 
 sealed interface ColleagueAttribute {
     fun get(colleague: Colleague): String
@@ -32,4 +32,8 @@ data object Memberships : ColleagueAttribute {
             "${it.role} at ${it.team}"
         }
     }
+}
+
+data object Location : ColleagueAttribute {
+    override fun get(colleague: Colleague): String = colleague.location ?: ""
 }
