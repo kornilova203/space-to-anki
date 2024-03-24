@@ -33,13 +33,12 @@ fun main() {
         configureClient()
     }
     val colleagues = runBlocking {
-        fetchColleagues(scope, client, skip = 60)
-    }.take(10)
-        .map { colleague ->
-            val picture = runBlocking {
-                loadPicture(token, httpClient, colleague.profilePictureId)
-            }
-            ColleagueWithPicture(colleague, picture)
+        fetchColleagues(scope, client)
+    }.map { colleague ->
+        val picture = runBlocking {
+            loadPicture(token, httpClient, colleague.profilePictureId)
+        }
+        ColleagueWithPicture(colleague, picture)
     }.toList()
     tagsDir.mkdirs()
     rememberTags(colleagues, additionalTags)
