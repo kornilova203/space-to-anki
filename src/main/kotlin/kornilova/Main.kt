@@ -16,7 +16,7 @@ import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
 
 fun main() {
-    val scope = EmailsScope(File("emails.txt").readLines())
+    val scope = CoreTeam
     val additionalTags = listOf<String>()
 
     val spaceHttpClient = ktorClientForSpace {
@@ -102,7 +102,9 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
                     name()
                 }
                 team {
+                    id()
                     name()
+                    parent(this)
                 }
                 customFields()
             }
@@ -123,16 +125,16 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
                 Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
             }.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
             location?.presentableName,
-            extractLocationTags(profile)
+            extractLocationTags(profile) + extractTeamTags(profile)
         )
     }
 }
 
 fun HttpClientConfig<*>.configureClient() {
     install(HttpTimeout) {
-        requestTimeoutMillis = 10000
-        connectTimeoutMillis = 10000
-        socketTimeoutMillis = 10000
+        requestTimeoutMillis = 5000
+        connectTimeoutMillis = 5000
+        socketTimeoutMillis = 5000
     }
 }
 

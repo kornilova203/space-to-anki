@@ -35,7 +35,8 @@ abstract class LocationScope(private val location: SimpleLocation) : Scope<Stand
             batchInfo = batchInfo.batchInfo,
             buildPartial = buildPartial
         )
-        return MyBatch(StandardBatchInfo(BatchInfo(batch.next, batchSize), batch.data.isNotEmpty()), batch.data)
+        val data = batch.data.filter { !it.notAMember }
+        return MyBatch(StandardBatchInfo(BatchInfo(batch.next, batchSize), batch.data.isNotEmpty()), data)
     }
 }
 
@@ -71,6 +72,24 @@ class EmailsScope(private val emails: List<String>) : Scope<ListBatchInfo<TD_Mem
         return MyBatch(ListBatchInfo(batchInfo.listTail.drop(1)), listOf(profile))
     }
 }
+
+abstract class TeamScope(private val team: Team) : Scope<StandardBatchInfo<TD_MemberProfile>> {
+    override fun initialBatchInfo(skip: Int): StandardBatchInfo<TD_MemberProfile> {
+        return StandardBatchInfo(BatchInfo("0", batchSize), true)
+    }
+
+    override suspend fun getAllProfiles(
+        client: SpaceClient,
+        batchInfo: StandardBatchInfo<TD_MemberProfile>,
+        buildPartial: TD_MemberProfilePartial.() -> Unit
+    ): MyBatch<TD_MemberProfile, StandardBatchInfo<TD_MemberProfile>> {
+        val batch = client.teamDirectory.profiles.getAllProfiles(teamId = team.id, batchInfo = batchInfo.batchInfo, buildPartial = buildPartial)
+        val data = batch.data.filter { !it.notAMember }
+        return MyBatch(StandardBatchInfo(BatchInfo(batch.next, batchSize), batch.data.isNotEmpty() && batch.next.isNotEmpty()), data)
+    }
+}
+
+object CoreTeam : TeamScope(Team.CORE)
 
 class StandardBatchInfo<T>(val batchInfo: BatchInfo, override val hasNext: Boolean) : MyBatchInfo<T>
 class SimpleBatchInfo<T>(override val hasNext: Boolean) : MyBatchInfo<T>
