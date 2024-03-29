@@ -126,7 +126,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
             Membership(
                 it.role.name,
                 it.team.name,
-                it.lead,
+                it.lead || it.role.name.contains("Lead"),
                 if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f
             )
         }
