@@ -9,7 +9,8 @@ val colleagueAttributes = listOf(
     ColoredFirstCharacter(LastName),
     Picture,
     Memberships,
-    Location
+    Location,
+    StartDate,
 )
 
 sealed interface ColleagueAttribute {
@@ -47,6 +48,13 @@ data object Location : ColleagueAttribute {
     override fun get(colleague: Colleague): String = colleague.location ?: ""
 }
 
+data object StartDate : ColleagueAttribute {
+    override fun get(colleague: Colleague): String {
+        val bucket = chooseStartTimeBucket(colleague.startDate)
+        val text = colleague.startDate.toString()
+        return if (bucket.color != null) text.bold().color(bucket.color) else text
+    }
+}
 
 data class ColoredFirstCharacter(val attribute: ColleagueAttribute) : ColleagueAttribute {
     override fun get(colleague: Colleague): String {

@@ -1,5 +1,8 @@
 package kornilova
 
+import kotlinx.datetime.LocalDate
+
+
 class Colleague(
     val id: String,
     val firstName: String,
@@ -7,6 +10,7 @@ class Colleague(
     val profilePictureId: String,
     val memberships: List<Membership>,
     val location: String?,
+    val startDate: LocalDate,
     val tags: Set<String>,
 )
 

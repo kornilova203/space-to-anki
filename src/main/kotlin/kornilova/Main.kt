@@ -16,7 +16,7 @@ import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
 
 fun main() {
-    val scope = CoreTeam
+    val scope = Berlin
     val additionalTags = listOf<String>()
 
     val spaceHttpClient = ktorClientForSpace {
@@ -108,6 +108,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
                 }
                 customFields()
             }
+            membershipHistory()
         }
         scope.getAllProfiles(client, batchInfo, buildPartial)
     }
@@ -115,6 +116,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
         val russianName = profile.languages.find { it.language.name == "Russian" }?.name
         val location = extractSimpleLocation(profile)
+        val startDate = profile.membershipHistory.mapNotNull { it.since }.min()
         Colleague(
             profile.id,
             russianName?.firstName ?: profile.name.firstName,
@@ -125,7 +127,8 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
                 Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
             }.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
             location?.presentableName,
-            extractLocationTags(profile) + extractTeamTags(profile)
+            startDate,
+            extractLocationTags(profile) + extractTeamTags(profile) + chooseStartTimeBucket(startDate).tag
         )
     }
 }
