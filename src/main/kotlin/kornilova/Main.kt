@@ -117,18 +117,25 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
         val russianName = profile.languages.find { it.language.name == "Russian" }?.name
         val location = extractSimpleLocation(profile)
         val startDate = profile.membershipHistory.mapNotNull { it.since }.min()
+        val memberships = profile.memberships.map {
+            val ratio = (it.customFields["Ratio"] as? FractionCFValue)?.value
+            Membership(
+                it.role.name,
+                it.team.name,
+                it.lead,
+                if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f
+            )
+        }
         Colleague(
             profile.id,
             russianName?.firstName ?: profile.name.firstName,
             russianName?.lastName ?: profile.name.lastName,
             profilePictureId,
-            profile.memberships.map {
-                val ratio = (it.customFields["Ratio"] as? FractionCFValue)?.value
-                Membership(it.role.name, it.team.name, it.lead, if (ratio != null) ratio.numerator.toFloat() / ratio.denominator else 1f)
-            }.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
+            memberships.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
             location?.presentableName,
             startDate,
-            extractLocationTags(profile) + extractTeamTags(profile) + chooseStartTimeBucket(startDate).tag
+            extractLocationTags(profile) + extractTeamTags(profile) + chooseStartTimeBucket(startDate).tag +
+                    (if (memberships.any { it.lead }) setOf("is_lead") else emptySet())
         )
     }
 }
