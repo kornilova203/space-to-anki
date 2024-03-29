@@ -29,13 +29,17 @@ fun main() {
         token = token
     )
 
+    val resDir = File("result")
+    val imagesDir = resDir.resolve("images")
+
     val httpClient = HttpClient {
         configureClient()
     }
     val colleagues = runBlocking {
         fetchColleagues(scope, client)
     }.map { colleague ->
-        val picture = runBlocking {
+        val picture = if (imageFile(imagesDir, colleague).exists()) null
+        else runBlocking {
             loadPicture(token, httpClient, colleague.profilePictureId)
         }
         ColleagueWithPicture(colleague, picture)
@@ -43,7 +47,7 @@ fun main() {
     tagsDir.mkdirs()
     rememberTags(colleagues, additionalTags)
     val allTags = readAllTags()
-    makeAnkiDeck(colleagues.toList(), allTags)
+    makeAnkiDeck(colleagues.toList(), allTags, resDir, imagesDir)
 }
 
 suspend fun loadPicture(token: String, httpClient: HttpClient, profilePictureId: String): ByteArray {
@@ -148,14 +152,18 @@ fun HttpClientConfig<*>.configureClient() {
     }
 }
 
-fun makeAnkiDeck(colleagues: List<ColleagueWithPicture>, additionalTags: Map<String, Set<String>>) {
-    val resDir = File("result")
-    val imagesDir = resDir.resolve("images")
-    resDir.deleteRecursively()
+fun makeAnkiDeck(
+    colleagues: List<ColleagueWithPicture>,
+    additionalTags: Map<String, Set<String>>,
+    resDir: File,
+    imagesDir: File
+) {
     imagesDir.mkdirs()
 
     for (colleague in colleagues) {
-        imagesDir.resolve("${colleague.colleague.profilePictureId}.jpg").writeBytes(colleague.picture)
+        if (colleague.picture != null) {
+            imageFile(imagesDir, colleague.colleague).writeBytes(colleague.picture)
+        }
     }
     val rows = colleagues.map { colleague ->
         val allTags = colleague.colleague.tags + (additionalTags[colleague.colleague.id] ?: emptySet())
@@ -164,6 +172,9 @@ fun makeAnkiDeck(colleagues: List<ColleagueWithPicture>, additionalTags: Map<Str
 
     csvWriter().writeAll(rows, resDir.resolve("result.csv"))
 }
+
+private fun imageFile(imagesDir: File, colleague: Colleague) =
+    imagesDir.resolve("${colleague.profilePictureId}.jpg")
 
 suspend fun <T, B : MyBatchInfo<T>> fetchAll(initialBatchInfo: B, query: suspend (B) -> MyBatch<T, B>): Sequence<T> {
     return generateSequence(query(initialBatchInfo)) { batch ->

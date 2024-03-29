@@ -14,7 +14,7 @@ class Colleague(
     val tags: Set<String>,
 )
 
-class ColleagueWithPicture(val colleague: Colleague, val picture: ByteArray)
+class ColleagueWithPicture(val colleague: Colleague, val picture: ByteArray?)
 
 class Membership(
     val role: String,
