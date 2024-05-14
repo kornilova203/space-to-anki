@@ -3,10 +3,12 @@ package kornilova
 import kornilova.SimpleLocation.BERLIN
 import kornilova.SimpleLocation.NETHERLANDS
 import space.jetbrains.api.runtime.BatchInfo
+import space.jetbrains.api.runtime.NotFoundException
 import space.jetbrains.api.runtime.SpaceClient
 import space.jetbrains.api.runtime.resources.teamDirectory
 import space.jetbrains.api.runtime.types.TD_MemberProfile
 import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
+import kotlin.Exception
 
 private const val batchSize = 10
 
@@ -68,8 +70,13 @@ class EmailsScope(private val emails: List<String>) : Scope<ListBatchInfo<TD_Mem
         batchInfo: ListBatchInfo<TD_MemberProfile, String>,
         buildPartial: TD_MemberProfilePartial.() -> Unit
     ): MyBatch<TD_MemberProfile, ListBatchInfo<TD_MemberProfile, String>> {
-        val profile = client.teamDirectory.profiles.getProfileByEmail(batchInfo.listTail.first(), buildPartial = buildPartial)
-        return MyBatch(ListBatchInfo(batchInfo.listTail.drop(1)), listOf(profile))
+        val email = batchInfo.listTail.first()
+        try {
+            val profile = client.teamDirectory.profiles.getProfileByEmail(email, buildPartial = buildPartial)
+            return MyBatch(ListBatchInfo(batchInfo.listTail.drop(1)), listOf(profile))
+        } catch (e: NotFoundException) {
+            throw Exception("Cannot find user with email $email", e)
+        }
     }
 }
 
