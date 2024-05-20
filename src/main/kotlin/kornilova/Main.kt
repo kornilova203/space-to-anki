@@ -14,6 +14,9 @@ import space.jetbrains.api.runtime.types.FractionCFValue
 import space.jetbrains.api.runtime.types.TD_MemberProfile
 import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
 import java.io.File
+import java.util.*
+
+private val preferredNameLang = System.getProperty("preferred.name.lang") // none for english or "russian"
 
 fun main() {
     val scope = Berlin
@@ -117,7 +120,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
     }
     return profiles.mapNotNull { profile ->
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
-        val russianName = profile.languages.find { it.language.name == "Russian" }?.name
+        val preferredName = profile.languages.find { it.language.name.lowercase(Locale.ENGLISH) == preferredNameLang }?.name
         val locations = extractLocations(profile)
         val startDate = profile.membershipHistory.mapNotNull { it.since }.min()
         val memberships = profile.memberships.map {
@@ -131,8 +134,8 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
         }
         Colleague(
             profile.id,
-            russianName?.firstName ?: profile.name.firstName,
-            russianName?.lastName ?: profile.name.lastName,
+            preferredName?.firstName ?: profile.name.firstName,
+            preferredName?.lastName ?: profile.name.lastName,
             profilePictureId,
             memberships.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
             locations,
