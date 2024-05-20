@@ -40,10 +40,13 @@ fun main() {
     }
     val colleagues = runBlocking {
         fetchColleagues(scope, client)
-    }.map { colleague ->
+    }.mapIndexed { index, colleague ->
         val picture = if (imageFile(imagesDir, colleague).exists()) null
         else runBlocking {
             loadPicture(token, httpClient, colleague.profilePictureId)
+        }
+        if ((index + 1) % 10 == 0) {
+            println("Fetched ${index + 1} photos")
         }
         ColleagueWithPicture(colleague, picture)
     }.toList()
@@ -85,6 +88,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
     client: SpaceClient,
     skip: Int = 0
 ): Sequence<Colleague> {
+    var count = 0
     val profiles = fetchAll(scope.initialBatchInfo(skip)) { batchInfo ->
         val buildPartial: TD_MemberProfilePartial.() -> Unit = {
             defaultPartial()
@@ -117,7 +121,10 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
             membershipHistory()
             about()
         }
-        scope.getAllProfiles(client, batchInfo, buildPartial)
+        val res = scope.getAllProfiles(client, batchInfo, buildPartial)
+        count += res.data.size
+        println("Fetched $count profiles")
+        res
     }
     return profiles.mapNotNull { profile ->
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
