@@ -19,7 +19,7 @@ import java.util.*
 private val preferredNameLang = System.getProperty("preferred.name.lang") // none for english or "russian"
 
 fun main() {
-    val scope = Berlin
+    val scope = AllScope
     val additionalTags = listOf<String>()
 
     val spaceHttpClient = ktorClientForSpace {

@@ -21,6 +21,22 @@ sealed interface Scope<B : MyBatchInfo<TD_MemberProfile>> {
     ): MyBatch<TD_MemberProfile, B>
 }
 
+data object AllScope : Scope<StandardBatchInfo<TD_MemberProfile>> {
+    override fun initialBatchInfo(skip: Int): StandardBatchInfo<TD_MemberProfile> {
+        return StandardBatchInfo(BatchInfo(skip.toString(), batchSize), true)
+    }
+
+    override suspend fun getAllProfiles(
+        client: SpaceClient,
+        batchInfo: StandardBatchInfo<TD_MemberProfile>,
+        buildPartial: TD_MemberProfilePartial.() -> Unit
+    ): MyBatch<TD_MemberProfile, StandardBatchInfo<TD_MemberProfile>> {
+        val batch = client.teamDirectory.profiles.getAllProfiles(batchInfo = batchInfo.batchInfo, buildPartial = buildPartial)
+        val data = batch.data.filter { !it.notAMember }
+        return MyBatch(StandardBatchInfo(BatchInfo(batch.next, batchSize), batch.data.isNotEmpty()), data)
+    }
+}
+
 enum class LocationId(val id: String) {
     BERLIN("1VSTug1k3zI8"),
     NETHERLANDS("3fkpd53c1Sls"),
