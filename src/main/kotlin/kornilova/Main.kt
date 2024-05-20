@@ -136,6 +136,8 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
             profile.id,
             preferredName?.firstName ?: profile.name.firstName,
             preferredName?.lastName ?: profile.name.lastName,
+            profile.languages.mapNotNull { it.name?.let { name -> Pair(name.firstName, name.lastName) } }
+                .plus(Pair(profile.name.firstName, profile.name.lastName)),
             profilePictureId,
             memberships.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
             locations,

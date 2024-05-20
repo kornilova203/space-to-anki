@@ -7,6 +7,7 @@ class Colleague(
     val id: String,
     val firstName: String,
     val lastName: String,
+    val allNameSpellings: List<Pair<String, String>>,
     val profilePictureId: String,
     val memberships: List<Membership>,
     val locations: List<Location>,

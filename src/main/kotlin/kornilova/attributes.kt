@@ -7,6 +7,7 @@ val colleagueAttributes = listOf(
     ColleagueId,
     ColoredFirstCharacter(FirstName),
     ColoredFirstCharacter(LastName),
+    AllNameSpellings,
     Picture,
     Memberships,
     LocationAttr,
@@ -29,6 +30,9 @@ data object LastName : ColleagueAttribute {
     override fun get(colleague: Colleague): String = colleague.lastName
 }
 
+data object AllNameSpellings : ColleagueAttribute {
+    override fun get(colleague: Colleague): String = colleague.allNameSpellings.joinToString { "${it.first} ${it.second}" }
+}
 
 data object Picture : ColleagueAttribute {
     override fun get(colleague: Colleague): String {
