@@ -1,14 +1,13 @@
 package kornilova
 
-import kornilova.SimpleLocation.BERLIN
-import kornilova.SimpleLocation.NETHERLANDS
+import kornilova.LocationId.BERLIN
+import kornilova.LocationId.NETHERLANDS
 import space.jetbrains.api.runtime.BatchInfo
 import space.jetbrains.api.runtime.NotFoundException
 import space.jetbrains.api.runtime.SpaceClient
 import space.jetbrains.api.runtime.resources.teamDirectory
 import space.jetbrains.api.runtime.types.TD_MemberProfile
 import space.jetbrains.api.runtime.types.partials.TD_MemberProfilePartial
-import kotlin.Exception
 
 private const val batchSize = 10
 
@@ -22,7 +21,22 @@ sealed interface Scope<B : MyBatchInfo<TD_MemberProfile>> {
     ): MyBatch<TD_MemberProfile, B>
 }
 
-abstract class LocationScope(private val location: SimpleLocation) : Scope<StandardBatchInfo<TD_MemberProfile>> {
+enum class LocationId(val id: String) {
+    BERLIN("1VSTug1k3zI8"),
+    NETHERLANDS("3fkpd53c1Sls"),
+    MUNICH("1L51AV11kGh1"),
+    PRAGUE("3FYOKl3LmPsO"),
+    LIMASSOL("3D2sOm4d9Ncn"),
+    PAPHOS("2O8be34YBK5t"),
+    NICOSIA("1UHIxV1itE7x"),
+    LARNACA("30TuuV2j3VIT"),
+    ARMENIA("2sgqQq34Lvfd"),
+    LONDON("2W9t4C2cQEQi"),
+    BELGRADE("3PjPdT40jjxb"),
+    SWEDEN("P3TmV0Q8Rqu")
+}
+
+abstract class LocationScope(private val location: LocationId) : Scope<StandardBatchInfo<TD_MemberProfile>> {
     override fun initialBatchInfo(skip: Int): StandardBatchInfo<TD_MemberProfile> {
         return StandardBatchInfo(BatchInfo(skip.toString(), batchSize), true)
     }

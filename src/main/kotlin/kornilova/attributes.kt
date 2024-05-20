@@ -9,7 +9,7 @@ val colleagueAttributes = listOf(
     ColoredFirstCharacter(LastName),
     Picture,
     Memberships,
-    Location,
+    LocationAttr,
     StartDate,
 )
 
@@ -44,8 +44,8 @@ data object Memberships : ColleagueAttribute {
     }
 }
 
-data object Location : ColleagueAttribute {
-    override fun get(colleague: Colleague): String = colleague.location ?: ""
+data object LocationAttr : ColleagueAttribute {
+    override fun get(colleague: Colleague): String = colleague.locations.joinToString("\n") { it.presentableName }
 }
 
 data object StartDate : ColleagueAttribute {

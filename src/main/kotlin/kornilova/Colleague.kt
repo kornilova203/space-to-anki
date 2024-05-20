@@ -9,7 +9,7 @@ class Colleague(
     val lastName: String,
     val profilePictureId: String,
     val memberships: List<Membership>,
-    val location: String?,
+    val locations: List<Location>,
     val startDate: LocalDate,
     val tags: Set<String>,
 )
