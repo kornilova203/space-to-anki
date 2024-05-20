@@ -34,26 +34,36 @@ fun main() {
 
     val resDir = File("result")
     val imagesDir = resDir.resolve("images")
+    imagesDir.mkdirs()
+    val targetFile = resDir.resolve("result.csv")
+    val existingIds = if (targetFile.exists()) csvReader().readAll(targetFile).map { it[0] }.toSet() else emptySet()
 
     val httpClient = HttpClient {
         configureClient()
     }
+    var loadedImagesCount = 0
+    var existingImagesCount = 0
     val colleagues = runBlocking {
-        fetchColleagues(scope, client)
-    }.mapIndexed { index, colleague ->
-        val picture = if (imageFile(imagesDir, colleague).exists()) null
-        else runBlocking {
-            loadPicture(token, httpClient, colleague.profilePictureId)
+        fetchColleagues(scope, client, existingIds)
+    }.map { colleague ->
+        val imageExists = imageFile(imagesDir, colleague).exists()
+        val picture = if (imageExists) {
+            existingImagesCount += 1
+            null
         }
-        if ((index + 1) % 10 == 0) {
-            println("Fetched ${index + 1} photos")
+        else {
+            loadedImagesCount += 1
+            runBlocking {
+                loadPicture(token, httpClient, colleague.profilePictureId)
+            }
+        }
+        if ((loadedImagesCount + existingImagesCount) % 10 == 0) {
+            println("Fetched $loadedImagesCount photos and $existingImagesCount didn't need to be fetched because they are already saved to disk")
         }
         ColleagueWithPicture(colleague, picture)
-    }.toList()
+    }
     tagsDir.mkdirs()
-    rememberTags(colleagues, additionalTags)
-    val allTags = readAllTags()
-    makeAnkiDeck(colleagues.toList(), allTags, resDir, imagesDir)
+    makeAnkiDeck(colleagues, additionalTags, targetFile, imagesDir)
 }
 
 suspend fun loadPicture(token: String, httpClient: HttpClient, profilePictureId: String): ByteArray {
@@ -86,6 +96,7 @@ fun readAllTags(): Map<String, Set<String>> {
 private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
     scope: Scope<B>,
     client: SpaceClient,
+    existingIds: Set<String>,
     skip: Int = 0
 ): Sequence<Colleague> {
     var count = 0
@@ -127,6 +138,9 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
         res
     }
     return profiles.mapNotNull { profile ->
+        if (profile.id in existingIds) {
+            return@mapNotNull null
+        }
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
         val preferredName = profile.languages.find { it.language.name.lowercase(Locale.ENGLISH) == preferredNameLang }?.name
         val locations = extractLocations(profile)
@@ -166,24 +180,24 @@ fun HttpClientConfig<*>.configureClient() {
 }
 
 fun makeAnkiDeck(
-    colleagues: List<ColleagueWithPicture>,
-    additionalTags: Map<String, Set<String>>,
-    resDir: File,
+    colleagues: Sequence<ColleagueWithPicture>,
+    additionalTags: List<String>,
+    targetFile: File,
     imagesDir: File
 ) {
-    imagesDir.mkdirs()
-
-    for (colleague in colleagues) {
-        if (colleague.picture != null) {
-            imageFile(imagesDir, colleague.colleague).writeBytes(colleague.picture)
+    colleagues.chunked(10).map { colleaguesChunk ->
+        rememberTags(colleaguesChunk, additionalTags)
+        colleaguesChunk.map { colleague ->
+            if (colleague.picture != null) {
+                imageFile(imagesDir, colleague.colleague).writeBytes(colleague.picture)
+            }
+            val allTagsFromDisk = readAllTags()
+            val allTags = colleague.colleague.tags + (allTagsFromDisk[colleague.colleague.id] ?: emptySet())
+            colleagueAttributes.map { attribute -> attribute.get(colleague.colleague) }.plus(allTags.joinToString(" "))
         }
+    }.forEach { rows ->
+        csvWriter().writeAll(rows, targetFile, true)
     }
-    val rows = colleagues.map { colleague ->
-        val allTags = colleague.colleague.tags + (additionalTags[colleague.colleague.id] ?: emptySet())
-        colleagueAttributes.map { attribute -> attribute.get(colleague.colleague) }.plus(allTags.joinToString(" "))
-    }
-
-    csvWriter().writeAll(rows, resDir.resolve("result.csv"))
 }
 
 private fun imageFile(imagesDir: File, colleague: Colleague) =
