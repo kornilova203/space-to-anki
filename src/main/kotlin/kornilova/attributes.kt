@@ -12,6 +12,7 @@ val colleagueAttributes = listOf(
     Memberships,
     LocationAttr,
     StartDate,
+    AboutAttr,
 )
 
 sealed interface ColleagueAttribute {
@@ -58,6 +59,10 @@ data object StartDate : ColleagueAttribute {
         val text = colleague.startDate.toString()
         return if (bucket.color != null) text.bold().color(bucket.color) else text
     }
+}
+
+data object AboutAttr : ColleagueAttribute {
+    override fun get(colleague: Colleague): String = colleague.about ?: ""
 }
 
 data class ColoredFirstCharacter(val attribute: ColleagueAttribute) : ColleagueAttribute {

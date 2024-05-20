@@ -115,6 +115,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
                 customFields()
             }
             membershipHistory()
+            about()
         }
         scope.getAllProfiles(client, batchInfo, buildPartial)
     }
@@ -142,6 +143,7 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
             memberships.sortedWith(compareBy<Membership>({ it.lead }, { it.ratio }).reversed()),
             locations,
             startDate,
+            profile.about,
             locations.flatMapTo(mutableSetOf()) { it.tags } + extractTeamTags(profile) + chooseStartTimeBucket(startDate).tag +
                     (if (memberships.any { it.lead }) setOf("is_lead") else emptySet())
         )

@@ -12,6 +12,7 @@ class Colleague(
     val memberships: List<Membership>,
     val locations: List<Location>,
     val startDate: LocalDate,
+    val about: String?,
     val tags: Set<String>,
 )
 
