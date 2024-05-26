@@ -4,7 +4,7 @@
 
 1. Install Anki desktop https://apps.ankiweb.net/
 1. First, you need to import "Colleague" [Note Type](https://docs.ankiweb.net/getting-started.html#note-types).
-   1. To do it, download the .apkg file from this release and import it to Anki. This will import one note with me, and you'll get `Colleague` note type.
+   1. To do it, download the .apkg file from [the latest release](https://github.com/kornilova203/space-to-anki/releases) and import it to Anki. This will import one note with me, and you'll get `Colleague` note type.
 1. Obtain token
    1. Go to https://jetbrains.team/
    1. Extensions > API Playground
