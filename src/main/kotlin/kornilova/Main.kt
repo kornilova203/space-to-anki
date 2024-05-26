@@ -36,7 +36,7 @@ fun main() {
     val imagesDir = resDir.resolve("images")
     imagesDir.mkdirs()
     val targetFile = resDir.resolve("result.csv")
-    val existingIds = if (targetFile.exists()) csvReader().readAll(targetFile).map { it[0] }.toSet() else emptySet()
+    targetFile.delete()
 
     val httpClient = HttpClient {
         configureClient()
@@ -44,7 +44,7 @@ fun main() {
     var loadedImagesCount = 0
     var existingImagesCount = 0
     val colleagues = runBlocking {
-        fetchColleagues(scope, client, existingIds)
+        fetchColleagues(scope, client)
     }.map { colleague ->
         val imageExists = imageFile(imagesDir, colleague).exists()
         val picture = if (imageExists) {
@@ -96,7 +96,6 @@ fun readAllTags(): Map<String, Set<String>> {
 private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
     scope: Scope<B>,
     client: SpaceClient,
-    existingIds: Set<String>,
     skip: Int = 0
 ): Sequence<Colleague> {
     var count = 0
@@ -138,9 +137,6 @@ private suspend fun <B : MyBatchInfo<TD_MemberProfile>> fetchColleagues(
         res
     }
     return profiles.mapNotNull { profile ->
-        if (profile.id in existingIds) {
-            return@mapNotNull null
-        }
         val profilePictureId = profile.profilePicture ?: return@mapNotNull null
         val preferredName = profile.languages.find { it.language.name.lowercase(Locale.ENGLISH) == preferredNameLang }?.name
         val locations = extractLocations(profile)
